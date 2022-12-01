@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { PropType, Ref, ref } from 'vue';
-import {
-  CurrentMessageItem,
-  Momotalk,
-  SelectionOption,
-} from '../../types/Chats';
+import { CurrentMessageItem, Momotalk } from '../../types/Chats';
 import MomoTalkComponent from './MomoTalkComponent.vue';
 
 const props = defineProps({
@@ -17,147 +13,117 @@ const props = defineProps({
   content: Object as PropType<Momotalk[]>,
 });
 
-/**
- * 需要运行的next序列的id
- */
-let nextId = ref(0);
 const messageList: Ref<CurrentMessageItem[]> = ref([]);
+const pushedMessages: Ref<number[]> = ref([]);
 
-/**
- * 执行一个next序列
- * @param NextGroupId next序列的下一目的地的GroupId
- * @param id next序列的id
- */
-// TODO: 在硬到结块之前重写这坨屎山
-async function next(NextGroupId: number, id: number) {
-  /**
-   * 通过id判断当前的next序列是否是需要运行的next序列, 不是则停止运行, 下面push前的判断同理
-   */
-  if (id !== nextId.value) {
-    return;
-  }
-  const messageGroupElements = findItemsByGroupId(NextGroupId);
-  const firstMessageGroupElement = messageGroupElements[0];
-  if (!firstMessageGroupElement) {
-    // NextGroupId 没有返回结果，聊天结束
-    return;
-  }
-  if (firstMessageGroupElement.MessageCondition === 'Answer') {
-    // 遇到玩家选项，需要合并后发送给子组件
-    const options: SelectionOption[] = [];
-    const answerElements = findItemsByGroupId(NextGroupId);
-    const favorScheduleId =
-      answerElements.find(element => element.FavorScheduleId !== 0)
-        ?.FavorScheduleId || 0;
-    for (const answerElement of answerElements) {
-      options.push({
-        MessageCN: answerElement.MessageCN,
-        MessageJP: answerElement.MessageJP,
-        MessageEN: answerElement.MessageEN,
-        MessageKR: answerElement.MessageKR,
-        MessageTH: answerElement.MessageTH,
-        MessageTW: answerElement.MessageTW,
-        NextGroupId: answerElement.NextGroupId,
-      });
-    }
-    if (id !== nextId.value) {
-      return;
-    }
-    messageList.value.push({
-      avatar: false,
-      MessageGroupId: firstMessageGroupElement.MessageGroupId,
-      Id: firstMessageGroupElement.Id,
-      CharacterId: firstMessageGroupElement.CharacterId,
-      ConditionValue: 0,
-      PreConditionGroupId: 0,
-      FavorScheduleId: favorScheduleId,
-      NextGroupId: 0,
-      FeedbackTimeMillisec: 0,
-      MessageCondition: 'Answer',
-      options: { current: -1, content: options },
-      MessageType: 'Text',
-      ImagePath: '',
-    });
-    await wait(-1000);
-    return;
+const firstItem = props.content?.[0] as CurrentMessageItem;
+firstItem.avatar = true; // 第一条消息显示学生头像
+messageList.value.push(firstItem as CurrentMessageItem);
+
+function messageToTypeofSelection(message: Momotalk[]): CurrentMessageItem {
+  const mergedMessage = message[0] as CurrentMessageItem;
+  mergedMessage.avatar = false;
+  if (1 === message.length) {
+    const messageElement = message[0] as Momotalk;
+    mergedMessage.options = [
+      {
+        MessageKR: messageElement.MessageKR,
+        MessageJP: messageElement.MessageJP,
+        MessageCN: messageElement.MessageCN,
+        MessageEN: messageElement.MessageEN,
+        MessageTH: messageElement.MessageTH,
+        MessageTW: messageElement.MessageTW,
+        NextGroupId: messageElement.NextGroupId,
+      },
+    ];
   } else {
-    if (id !== nextId.value) {
-      return;
-    }
-    // 不需要玩家选择（即学生发给玩家的信息）
-    messageList.value.push({
-      avatar: true,
-      MessageGroupId: firstMessageGroupElement.MessageGroupId,
-      Id: firstMessageGroupElement.Id,
-      CharacterId: firstMessageGroupElement.CharacterId,
-      ConditionValue: firstMessageGroupElement.ConditionValue,
-      PreConditionGroupId: firstMessageGroupElement.PreConditionGroupId,
-      FavorScheduleId: firstMessageGroupElement.FavorScheduleId,
-      NextGroupId: firstMessageGroupElement.NextGroupId,
-      FeedbackTimeMillisec: firstMessageGroupElement.FeedbackTimeMillisec,
-      MessageCondition: firstMessageGroupElement.MessageCondition,
-      MessageType: firstMessageGroupElement.MessageType,
-      ImagePath: firstMessageGroupElement.ImagePath,
-      MessageJP: firstMessageGroupElement.MessageJP,
-      MessageCN: firstMessageGroupElement.MessageCN,
-      MessageEN: firstMessageGroupElement.MessageEN,
-      MessageKR: firstMessageGroupElement.MessageKR,
-      MessageTH: firstMessageGroupElement.MessageTH,
-      MessageTW: firstMessageGroupElement.MessageTW,
-    });
-    await wait(firstMessageGroupElement.FeedbackTimeMillisec || 1500);
-    for (let currentMessageItem of messageGroupElements.slice(1)) {
-      if (id !== nextId.value) {
-        return;
-      }
-      messageList.value.push({
-        avatar: false,
-        MessageGroupId: currentMessageItem.MessageGroupId,
-        Id: currentMessageItem.Id,
-        CharacterId: currentMessageItem.CharacterId,
-        ConditionValue: currentMessageItem.ConditionValue,
-        PreConditionGroupId: currentMessageItem.PreConditionGroupId,
-        FavorScheduleId: currentMessageItem.FavorScheduleId,
-        NextGroupId: currentMessageItem.NextGroupId,
-        FeedbackTimeMillisec: currentMessageItem.FeedbackTimeMillisec,
-        MessageCondition: currentMessageItem.MessageCondition,
-        MessageType: currentMessageItem.MessageType,
-        ImagePath: currentMessageItem.ImagePath,
-        MessageJP: currentMessageItem.MessageJP,
-        MessageCN: currentMessageItem.MessageCN,
-        MessageEN: currentMessageItem.MessageEN,
-        MessageKR: currentMessageItem.MessageKR,
-        MessageTH: currentMessageItem.MessageTH,
-        MessageTW: currentMessageItem.MessageTW,
+    mergedMessage.options = [];
+    for (const item of message) {
+      mergedMessage.options.push({
+        MessageKR: item.MessageKR,
+        MessageJP: item.MessageJP,
+        MessageCN: item.MessageCN,
+        MessageEN: item.MessageEN,
+        MessageTH: item.MessageTH,
+        MessageTW: item.MessageTW,
+        NextGroupId: item.NextGroupId,
       });
-      await wait(currentMessageItem.FeedbackTimeMillisec || 1500);
     }
   }
-  await next(firstMessageGroupElement.NextGroupId, id);
+  return mergedMessage;
 }
 
-function wait(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms + 1000));
+function getMessagesByNextGroupId(nextGroupId: number): CurrentMessageItem[] {
+  const nextMessages = props.content?.filter(
+    message => nextGroupId === message.MessageGroupId
+  ) as CurrentMessageItem[];
+  // 消息会返回一个消息组，分三种情况讨论：
+  // 1. 消息组只有一条消息，检测一下类型是不是 Answer
+  // 2. 消息组有多条消息，但是没有 MessageCondition === Answer 的消息，全部返回
+  // 3. 消息组有多条消息，并且是玩家选项，合并返回
+  // 第一种情况
+  if (1 === nextMessages.length) {
+    return 'Answer' === nextMessages[0].MessageCondition
+      ? [messageToTypeofSelection(nextMessages)]
+      : nextMessages;
+  }
+  // 第二、第三种情况
+  const answerMessages = nextMessages.filter(
+    message => 'Answer' === message.MessageCondition
+  );
+  if (0 === answerMessages.length) {
+    return nextMessages;
+  } else {
+    return [messageToTypeofSelection(answerMessages)];
+  }
 }
 
-function findItemsByGroupId(GroupId: number) {
-  return props.content?.filter(
-    value => value.MessageGroupId === GroupId
-  ) as Momotalk[];
+// 判断要不要显示学生头像
+function shouldShowAvatar(
+  previousCondition: 'None' | 'FavorRankUp' | 'Answer' | 'Feedback',
+  currentCondition: 'None' | 'FavorRankUp' | 'Answer' | 'Feedback'
+): boolean {
+  if (previousCondition === currentCondition) {
+    return false;
+  } else {
+    return 'Answer' === previousCondition;
+  }
+}
+
+// 处理下一条消息事件
+function handleNextMessage(Id: number, nextGroupId: number) {
+  const previousMessage = messageList.value.find(
+    message => Id === message.Id
+  ) as CurrentMessageItem;
+  const nextMessages = getMessagesByNextGroupId(nextGroupId);
+
+  if (0 === nextMessages.length) {
+    // 没有下一条消息，结束
+    return;
+  }
+  if (1 === nextMessages.length) {
+    // 只有一条消息，直接推入
+    const nextMessage = nextMessages[0] as CurrentMessageItem;
+    nextMessage.avatar = shouldShowAvatar(
+      previousMessage.MessageCondition,
+      nextMessage.MessageCondition
+    );
+    messageList.value.push(nextMessage);
+    pushedMessages.value.push(nextMessage.Id);
+  } else {
+    // 有多条消息，选择第一条不在已经推送列表中的消息进行推送
+    const nextMessage = nextMessages.filter(message => message.Id > Id)[0];
+    messageList.value.push(nextMessage);
+  }
 }
 
 // 处理用户选择和重新选择事件
 function handleUserSelect(Id: number, nextGroupId: number) {
   const selectionIndex = messageList.value.findIndex(value => value.Id === Id);
   messageList.value = messageList.value.slice(0, selectionIndex + 1);
-  //执行一个新的next序列, 并将需要执行的next序列的id设为自己的id
-  nextId.value++;
-  next(nextGroupId, nextId.value);
+  pushedMessages.value = pushedMessages.value.slice(0, selectionIndex + 1);
+  handleNextMessage(Id, nextGroupId);
 }
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-next(props.content[0].MessageGroupId, 0);
 </script>
 
 <template>
@@ -197,6 +163,7 @@ next(props.content[0].MessageGroupId, 0);
         :key="index"
         :message="message"
         @userSelect="handleUserSelect"
+        @resolveNextMessage="handleNextMessage"
       />
     </div>
   </div>

@@ -34,7 +34,7 @@
         <div
           role="button"
           class="rounded-small shadow-near"
-          v-for="(option, index) in message?.options?.content"
+          v-for="(option, index) in message?.options"
           :key="index"
           :class="index === currentSelection ? 'selected' : ''"
           @click="handleSelection(index, message?.Id, option.NextGroupId)"
@@ -92,6 +92,7 @@ const messageType = props.message?.MessageType || 'Text';
 const studentAvatar = `/image/avatar_students/${characterId}.webp`;
 
 const currentSelection = ref(-1);
+const emit = defineEmits(['userSelect', 'resolveNextMessage']);
 
 const showMessageContent = ref(false);
 const showFavorMessageContent = ref(false);
@@ -100,6 +101,14 @@ const feedbackTime = props.message?.FeedbackTimeMillisec || 1000;
 setTimeout(() => {
   showMessageContent.value = true;
 }, feedbackTime);
+
+if ('Answer' !== messageCondition) {
+  setTimeout(() => {
+    console.log('next message: ', props.message?.NextGroupId);
+    emit('resolveNextMessage', props.message?.Id, props.message?.NextGroupId);
+  }, feedbackTime + 800);
+}
+
 setTimeout(() => {
   showFavorMessageContent.value = true;
 }, feedbackTime + 500);
@@ -111,8 +120,6 @@ function getMessageImagePath(originPath: string | undefined): string {
   }
   return '';
 }
-
-const emit = defineEmits(['userSelect']);
 
 function handleSelection(
   selected: number,

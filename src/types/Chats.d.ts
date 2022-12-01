@@ -21,7 +21,7 @@ export interface Momotalk {
   MessageType: 'Text' | 'Image' | 'None';
   ImagePath: string | undefined;
   MessageKR?: string | undefined;
-  MessageJP: string | undefined;
+  MessageJP?: string | undefined;
   MessageCN?: string | undefined;
   MessageEN?: string | undefined;
   MessageTH?: string | undefined;
@@ -56,10 +56,7 @@ export interface CurrentMessageItem {
   NextGroupId: number;
   FeedbackTimeMillisec: number;
   MessageCondition: 'None' | 'FavorRankUp' | 'Answer' | 'Feedback';
-  options?: {
-    current: number;
-    content: SelectionOption[];
-  };
+  options?: SelectionOption[];
   MessageType: 'Text' | 'Image' | 'None';
   ImagePath: string | undefined;
   MessageJP?: string | undefined;
