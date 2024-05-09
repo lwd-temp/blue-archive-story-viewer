@@ -104,7 +104,7 @@
     "sass": "1.62.1",
     "terser": "5.17.6",
     "typescript": "5.0.4",
-    "vite": "4.3.9",
+    "vite": "4.5.3",
     "vite-plugin-clear-console": "^0.2.2",
     "vite-plugin-compression": "0.5.1",
     "vite-plugin-pwa": "0.15.1",
